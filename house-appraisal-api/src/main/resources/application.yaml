@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: house-appraisal-api
+
+server.port: 8081

@@ -1,9 +1,9 @@
 package dev.drewboiii.house.service.api.service
 
-import dev.drewboiii.house.service.api.controller.dto.HouseCreateDto
-import dev.drewboiii.house.service.api.controller.dto.HouseResponseDto
-import dev.drewboiii.house.service.api.controller.dto.toHouseEntity
-import dev.drewboiii.house.service.api.controller.dto.toHouseResponseDto
+import dev.drewboiii.house.service.api.client.HouseAppraisalClient
+import dev.drewboiii.house.service.api.client.dto.toHouseAppraisalEntity
+import dev.drewboiii.house.service.api.controller.dto.*
+import dev.drewboiii.house.service.api.repository.HouseAppraisalRepository
 import dev.drewboiii.house.service.api.repository.HouseRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service
 
 @Service
 class HouseService(
-    val houseRepository: HouseRepository
+    val houseRepository: HouseRepository,
+    val houseAppraisalRepository: HouseAppraisalRepository,
+    val houseAppraisalClient: HouseAppraisalClient,
 ) {
 
     suspend fun save(dto: HouseCreateDto) =
@@ -34,5 +36,24 @@ class HouseService(
     suspend fun get(id: String): HouseResponseDto =
         houseRepository.findById(id)?.toHouseResponseDto() ?: throw RuntimeException("House not found") // todo
 
-    companion object: KLogging()
+    suspend fun getAppraisalData(houseId: String, userId: String): HouseAppraisalResponseDto {
+        val house = houseRepository.findByIdAndUserId(houseId, userId)
+            ?: throw RuntimeException("House not found")
+
+        val address = house.address.fullAddress
+
+        val houseAppraisal = houseAppraisalRepository.findByHouseIdAndUserId(houseId, userId)
+
+        if (houseAppraisal != null) {
+            return houseAppraisal.toHouseAppraisalResponseDto()
+        }
+
+
+        val appraisalFlat = houseAppraisalClient.getAppraisalFlat(address)
+
+        return houseAppraisalRepository.save(appraisalFlat.toHouseAppraisalEntity(houseId, userId))
+            .toHouseAppraisalResponseDto()
+    }
+
+    companion object : KLogging()
 }
