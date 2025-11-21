@@ -3,6 +3,11 @@ server.port: 8080
 spring:
   application:
     name: house-service-api
+  jackson:
+    default-property-inclusion: non_null
+  data:
+    mongodb:
+      auto-index-creation: true
 
 user-data:
   name: "Peter"
